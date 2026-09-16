@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../services/google_calendar_service.dart';
 import '../theme/app_colors.dart';
 
 final school = SchoolState();
@@ -18,7 +21,7 @@ class SchoolState extends ChangeNotifier {
   bool _isPodcastPlaying = false;
   bool get isPodcastPlaying => _isPodcastPlaying;
 
-  double _podcastProgress = 0.35; // 0.0 to 1.0
+  double _podcastProgress = 0.35;
   double get podcastProgress => _podcastProgress;
 
   double _playbackSpeed = 1.0;
@@ -34,11 +37,28 @@ class SchoolState extends ChangeNotifier {
   final List<bool> _weekActivity = [true, true, true, true, true, false, false];
   List<bool> get weekActivity => List.unmodifiable(_weekActivity);
 
-  DateTime _calendarMonth = DateTime(2026, 3, 1);
+  // Calendario — parte dal mese corrente
+  DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime get calendarMonth => _calendarMonth;
 
-  DateTime _selectedDate = DateTime(2026, 3, 30);
+  DateTime _selectedDate = DateTime.now();
   DateTime get selectedDate => _selectedDate;
+
+  // ── Google Calendar sync state ─────────────────────────────────────────────
+  bool _isSyncing = false;
+  bool get isSyncing => _isSyncing;
+
+  bool _isGoogleSignedIn = false;
+  bool get isGoogleSignedIn => _isGoogleSignedIn;
+
+  String? _syncError;
+  String? get syncError => _syncError;
+
+  DateTime? _lastSyncTime;
+  DateTime? get lastSyncTime => _lastSyncTime;
+
+  Timer? _syncTimer;
+  StreamSubscription? _authSub;
 
   // Study plans ordered by due date
   final List<StudyPlan> _plans = [
@@ -451,17 +471,30 @@ class SchoolState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Add event
-  void addCalendarEvent({
+  // Add event — con sync su Google Calendar
+  Future<void> addCalendarEvent({
     required String title,
     required String subject,
     required DateTime date,
     required CalendarEventType type,
     required String details,
-  }) {
+  }) async {
+    final localId = 'ce-${DateTime.now().millisecondsSinceEpoch}';
+    String? googleId;
+
+    // Crea su Google Calendar se autenticato
+    if (_isGoogleSignedIn) {
+      googleId = await GoogleCalendarService.instance.createEvent(
+        title: title,
+        description: '[$type] $details',
+        date: date,
+      );
+    }
+
     _calendarEvents.add(
       CalendarEvent(
-        id: 'ce-${DateTime.now().millisecondsSinceEpoch}',
+        id: localId,
+        googleEventId: googleId,
         title: title,
         subject: subject,
         date: date,
@@ -472,8 +505,133 @@ class SchoolState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeCalendarEvent(String id) {
+  Future<void> removeCalendarEvent(String id) async {
+    final event = _calendarEvents.firstWhere((e) => e.id == id,
+        orElse: () => CalendarEvent(
+            id: '', title: '', subject: '', date: DateTime.now(),
+            type: CalendarEventType.altro, details: ''));
+
+    // Elimina da Google Calendar se ha un ID remoto
+    if (_isGoogleSignedIn && event.googleEventId != null) {
+      await GoogleCalendarService.instance.deleteEvent(event.googleEventId!);
+    }
+
     _calendarEvents.removeWhere((e) => e.id == id);
     notifyListeners();
+  }
+
+  // ── Google Calendar ────────────────────────────────────────────────────────
+
+  /// Inizializza il servizio Google Calendar e ascolta i cambi di utente.
+  Future<void> initGoogleCalendar() async {
+    await GoogleCalendarService.instance.init();
+
+    _authSub = GoogleCalendarService.instance.onUserChanged.listen((user) async {
+      _isGoogleSignedIn = user != null;
+      notifyListeners();
+      if (user != null) {
+        await syncFromGoogle();
+        _startSyncTimer();
+      } else {
+        _stopSyncTimer();
+      }
+    });
+
+    // Aggiorna stato iniziale
+    _isGoogleSignedIn = GoogleCalendarService.instance.isSignedIn;
+    if (_isGoogleSignedIn) {
+      await syncFromGoogle();
+      _startSyncTimer();
+    }
+    notifyListeners();
+  }
+
+  Future<void> googleSignIn() async {
+    _syncError = null;
+    notifyListeners();
+    await GoogleCalendarService.instance.signIn();
+  }
+
+  Future<void> googleSignOut() async {
+    await GoogleCalendarService.instance.signOut();
+    // Rimuovi eventi importati da Google (mantieni quelli locali)
+    _calendarEvents.removeWhere((e) => e.googleEventId != null);
+    _isGoogleSignedIn = false;
+    notifyListeners();
+  }
+
+  /// Scarica tutti gli eventi Google Calendar e li unisce agli eventi locali.
+  Future<void> syncFromGoogle() async {
+    if (!_isGoogleSignedIn) return;
+    _isSyncing = true;
+    _syncError = null;
+    notifyListeners();
+
+    try {
+      // Scarica eventi per i mesi: precedente, corrente e prossimo
+      final now = DateTime.now();
+      final events = await GoogleCalendarService.instance.fetchEvents(
+        timeMin: DateTime(now.year, now.month - 1, 1),
+        timeMax: DateTime(now.year, now.month + 3, 0),
+      );
+
+      // Mantieni solo gli eventi locali (senza googleEventId)
+      final localOnly = _calendarEvents.where((e) => e.googleEventId == null).toList();
+
+      // Converti gli eventi Google in CalendarEvent locali
+      final googleEvents = <CalendarEvent>[];
+      for (final ge in events) {
+        final date = GoogleCalendarService.eventDate(ge);
+        if (date == null) continue;
+        final category = GoogleCalendarService.eventCategory(ge);
+        final type = category == 'verifica'
+            ? CalendarEventType.verifica
+            : category == 'compito'
+                ? CalendarEventType.compito
+                : CalendarEventType.altro;
+
+        googleEvents.add(CalendarEvent(
+          id: 'g_${ge.id}',
+          googleEventId: ge.id,
+          title: ge.summary ?? 'Evento',
+          subject: ge.organizer?.displayName ?? 'Google Calendar',
+          date: date,
+          type: type,
+          details: ge.description ?? '',
+        ));
+      }
+
+      _calendarEvents
+        ..clear()
+        ..addAll(localOnly)
+        ..addAll(googleEvents);
+
+      _lastSyncTime = DateTime.now();
+    } catch (e) {
+      _syncError = 'Errore sync: ${e.toString().split('\n').first}';
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
+  }
+
+  void _startSyncTimer() {
+    _syncTimer?.cancel();
+    // Sync automatico ogni 60 secondi
+    _syncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      syncFromGoogle();
+    });
+  }
+
+  void _stopSyncTimer() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    _authSub?.cancel();
+    super.dispose();
   }
 }

@@ -143,10 +143,11 @@ class LessonRecording {
   });
 }
 
-enum CalendarEventType { verifica, compito, studio }
+enum CalendarEventType { verifica, compito, studio, altro }
 
 class CalendarEvent {
   final String id;
+  final String? googleEventId; // null = evento locale, non-null = sincronizzato con Google
   final String title;
   final String subject;
   final DateTime date;
@@ -155,6 +156,7 @@ class CalendarEvent {
 
   const CalendarEvent({
     required this.id,
+    this.googleEventId,
     required this.title,
     required this.subject,
     required this.date,

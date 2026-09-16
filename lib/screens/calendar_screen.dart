@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../models/models.dart';
+import '../services/google_calendar_service.dart';
 import '../state/school_state.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -75,7 +76,12 @@ class CalendarScreen extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 12),
+
+                // ── Google Calendar sync banner ────────────────────────
+                _GoogleSyncBanner(sc: sc),
+
+                const SizedBox(height: 12),
 
                 // ── Calendar card ─────────────────────────────────────
                 SoftCard(
@@ -419,6 +425,160 @@ class CalendarScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _GoogleSyncBanner
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _GoogleSyncBanner extends StatelessWidget {
+  const _GoogleSyncBanner({required this.sc});
+  final SchoolColors sc;
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return '—';
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSignedIn = school.isGoogleSignedIn;
+    final isSyncing = school.isSyncing;
+    final syncError = school.syncError;
+    final lastSync = school.lastSyncTime;
+    final user = isSignedIn
+        ? GoogleCalendarService.instance.currentUser
+        : null;
+
+    if (!isSignedIn) {
+      // ── Banner di accesso ──────────────────────────────────────────
+      return GestureDetector(
+        onTap: () => school.googleSignIn(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: sc.bgRaised,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: sc.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: sc.bgRaised2,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  // Icona Google — usiamo un'icona generica colorata
+                  child: Icon(PhosphorIconsRegular.googleLogo,
+                      size: 20, color: sc.accent),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Sincronizza Google Calendar',
+                        style: AppTheme.d(13,
+                            weight: FontWeight.w700, color: sc.text)),
+                    Text('Tocca per accedere e importare i tuoi eventi',
+                        style: AppTheme.s(11, color: sc.textSecondary)),
+                  ],
+                ),
+              ),
+              Icon(PhosphorIconsRegular.caretRight,
+                  size: 16, color: sc.textTertiary),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ── Banner sync attivo ─────────────────────────────────────────────
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: sc.bgRaised,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: syncError != null
+              ? sc.danger.withValues(alpha: 0.5)
+              : sc.sage.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Avatar utente
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: sc.accentSoft,
+            child: Text(
+              (user?.displayName ?? user?.email ?? 'G')
+                  .substring(0, 1)
+                  .toUpperCase(),
+              style: AppTheme.d(14,
+                  weight: FontWeight.w700, color: sc.accent),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user?.email ?? 'Google Calendar',
+                  style: AppTheme.s(12,
+                      weight: FontWeight.w600, color: sc.text),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (syncError != null)
+                  Text(syncError,
+                      style: AppTheme.s(10, color: sc.danger),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis)
+                else
+                  Text(
+                    isSyncing
+                        ? 'Sincronizzazione in corso…'
+                        : 'Ultimo sync: ${_formatTime(lastSync)}',
+                    style: AppTheme.s(10, color: sc.textSecondary),
+                  ),
+              ],
+            ),
+          ),
+          // Sync indicator / pulsante manuale
+          if (isSyncing)
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: sc.accent,
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: () => school.syncFromGoogle(),
+              child: Icon(PhosphorIconsRegular.arrowsClockwise,
+                  size: 18, color: sc.accent),
+            ),
+          const SizedBox(width: 10),
+          // Disconnetti
+          GestureDetector(
+            onTap: () => school.googleSignOut(),
+            child:
+                Icon(PhosphorIconsRegular.signOut, size: 18, color: sc.textTertiary),
+          ),
+        ],
       ),
     );
   }

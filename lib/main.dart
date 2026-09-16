@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/app_shell.dart';
+import 'state/school_state.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -14,6 +15,9 @@ void main() {
     systemNavigationBarContrastEnforced: false,
     systemStatusBarContrastEnforced: false,
   ));
+
+  // Avvia sync Google Calendar (silent sign-in se già autenticato)
+  school.initGoogleCalendar();
 
   runApp(const SchoolMasterApp());
 }
