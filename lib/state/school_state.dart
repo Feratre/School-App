@@ -482,11 +482,30 @@ class SchoolState extends ChangeNotifier {
     final localId = 'ce-${DateTime.now().millisecondsSinceEpoch}';
     String? googleId;
 
+    // Etichetta leggibile del tipo di evento
+    final typeLabel = type == CalendarEventType.verifica
+        ? 'Verifica'
+        : type == CalendarEventType.compito
+            ? 'Compito'
+            : type == CalendarEventType.studio
+                ? 'Studio'
+                : 'Altro';
+
+    final cleanDetails = details
+        .replaceAll(RegExp(r'\[CalendarEventType\.[a-zA-Z]+\]\s*'), '')
+        .trim();
+
+    final formattedDescription = cleanDetails.isEmpty
+        ? typeLabel
+        : cleanDetails.toLowerCase().startsWith(typeLabel.toLowerCase())
+            ? cleanDetails
+            : '$typeLabel - $cleanDetails';
+
     // Crea su Google Calendar se autenticato
     if (_isGoogleSignedIn) {
       googleId = await GoogleCalendarService.instance.createEvent(
         title: title,
-        description: '[$type] $details',
+        description: formattedDescription,
         date: date,
       );
     }
@@ -499,7 +518,7 @@ class SchoolState extends ChangeNotifier {
         subject: subject,
         date: date,
         type: type,
-        details: details,
+        details: formattedDescription,
       ),
     );
     notifyListeners();
@@ -590,6 +609,11 @@ class SchoolState extends ChangeNotifier {
                 ? CalendarEventType.compito
                 : CalendarEventType.altro;
 
+        final rawDescription = ge.description ?? '';
+        final cleanDescription = rawDescription
+            .replaceAll(RegExp(r'\[CalendarEventType\.[a-zA-Z]+\]\s*'), '')
+            .trim();
+
         googleEvents.add(CalendarEvent(
           id: 'g_${ge.id}',
           googleEventId: ge.id,
@@ -597,7 +621,7 @@ class SchoolState extends ChangeNotifier {
           subject: ge.organizer?.displayName ?? 'Google Calendar',
           date: date,
           type: type,
-          details: ge.description ?? '',
+          details: cleanDescription,
         ));
       }
 
