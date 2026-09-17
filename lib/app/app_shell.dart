@@ -42,7 +42,7 @@ class AppShell extends StatelessWidget {
                   left: 18,
                   right: 18,
                   bottom: 18 + MediaQuery.paddingOf(context).bottom,
-                  child: const _NavBar(),
+                  child: _NavBar(),
                 ),
               ],
             ),
