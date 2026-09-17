@@ -4,12 +4,27 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/calendar/v3.dart' as gcal;
+import 'package:http/http.dart' as http;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom AuthClient per integrare account.authHeaders con googleapis
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _GoogleAuthClient extends http.BaseClient {
+  final Map<String, String> _headers;
+  final http.Client _client = http.Client();
+
+  _GoogleAuthClient(this._headers);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    request.headers.addAll(_headers);
+    return _client.send(request);
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GoogleCalendarService
-//
-// Gestisce autenticazione Google e sincronizzazione bidirezionale con
-// Google Calendar API v3.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class GoogleCalendarService {
@@ -18,14 +33,8 @@ class GoogleCalendarService {
 
   static const _scopes = [gcal.CalendarApi.calendarScope];
 
-  // serverClientId = Web OAuth 2.0 Client ID — OBBLIGATORIO su Android affinché
-  // google_sign_in generi un access token usabile dalle googleapis HTTP calls.
-  static const _serverClientId =
-      '883921912656-is2aqbu1a10rqjsh9fpr7ghm8k40js6m.apps.googleusercontent.com';
-
   final _googleSignIn = GoogleSignIn(
     scopes: _scopes,
-    serverClientId: _serverClientId,
   );
 
   // Stato corrente
@@ -56,7 +65,7 @@ class GoogleCalendarService {
       }
       _userController.add(_calendarApi != null ? _currentUser : null);
     });
-    // Tenta silent sign-in all'avvio (nessun popup)
+    // Tenta silent sign-in all'avvio
     try {
       await _googleSignIn.signInSilently();
     } catch (e) {
@@ -69,9 +78,22 @@ class GoogleCalendarService {
     try {
       final account = await _googleSignIn.signIn();
       debugPrint('[GCal] signIn result: ${account?.email}');
+      if (account != null) {
+        // Verifica autorizzazione ambiti (Calendar scope)
+        final hasScope = await _googleSignIn.canAccessScopes(_scopes);
+        if (!hasScope) {
+          debugPrint('[GCal] Requesting missing scopes…');
+          final granted = await _googleSignIn.requestScopes(_scopes);
+          if (!granted) {
+            _lastAuthError = 'Permesso d’accesso a Google Calendar non concesso dall’utente.';
+            _userController.add(null);
+            return null;
+          }
+        }
+      }
       return account;
     } catch (e) {
-      _lastAuthError = e.toString();
+      _lastAuthError = 'Errore accesso Google: ${e.toString()}';
       debugPrint('[GCal] signIn error: $e');
       _userController.add(null);
       return null;
@@ -87,19 +109,40 @@ class GoogleCalendarService {
   }
 
   Future<void> _initApi() async {
+    final account = _currentUser;
+    if (account == null) return;
+
     try {
-      debugPrint('[GCal] Getting authenticated HTTP client…');
-      final httpClient = await _googleSignIn.authenticatedClient();
+      debugPrint('[GCal] Initializing Calendar API for ${account.email}…');
+
+      // 1. Tenta tramite extension_google_sign_in_as_googleapis_auth
+      http.Client? httpClient;
+      try {
+        httpClient = await _googleSignIn.authenticatedClient();
+      } catch (e) {
+        debugPrint('[GCal] extension authenticatedClient error: $e');
+      }
+
+      // 2. Fallback diretto tramite account.authHeaders
+      if (httpClient == null) {
+        debugPrint('[GCal] Falling back to direct authHeaders…');
+        final headers = await account.authHeaders;
+        debugPrint('[GCal] Headers obtained: ${headers.keys.join(', ')}');
+        if (headers.isNotEmpty) {
+          httpClient = _GoogleAuthClient(headers);
+        }
+      }
+
       if (httpClient != null) {
         _calendarApi = gcal.CalendarApi(httpClient);
-        debugPrint('[GCal] CalendarApi initialized ✓');
+        _lastAuthError = null;
+        debugPrint('[GCal] CalendarApi initialized successfully ✓');
       } else {
-        _lastAuthError = 'Impossibile ottenere token OAuth2. '
-            'Verifica che il SHA-1 sia registrato in Google Cloud Console.';
-        debugPrint('[GCal] authenticatedClient() returned null');
+        _lastAuthError = 'Impossibile ottenere i token di autenticazione Google.';
+        debugPrint('[GCal] Both auth methods failed.');
       }
     } catch (e) {
-      _lastAuthError = e.toString();
+      _lastAuthError = 'Errore inizializzazione API: $e';
       _calendarApi = null;
       debugPrint('[GCal] _initApi error: $e');
     }
