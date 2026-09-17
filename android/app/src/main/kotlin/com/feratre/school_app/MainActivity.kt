@@ -1,4 +1,4 @@
-package com.schoolmaster.school_app
+package com.feratre.school_app
 
 import io.flutter.embedding.android.FlutterActivity
 

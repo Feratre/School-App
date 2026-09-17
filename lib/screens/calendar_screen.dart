@@ -451,9 +451,60 @@ class _GoogleSyncBanner extends StatelessWidget {
     final isSyncing = school.isSyncing;
     final syncError = school.syncError;
     final lastSync = school.lastSyncTime;
+    final authError = GoogleCalendarService.instance.lastAuthError;
     final user = isSignedIn
         ? GoogleCalendarService.instance.currentUser
         : null;
+
+    // ── Errore di autenticazione ───────────────────────────────────────
+    if (!isSignedIn && authError != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: sc.bgRaised,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: sc.danger.withValues(alpha: 0.6)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(PhosphorIconsRegular.warningCircle,
+                    size: 18, color: sc.danger),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Accesso Google fallito',
+                      style: AppTheme.d(13,
+                          weight: FontWeight.w700, color: sc.danger)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Verifica di aver aggiunto il SHA-1 del debug keystore '
+              'nelle credenziali Android di Google Cloud Console:\n'
+              '17:29:43:F2:06:8E:66:94:B4:E6:B8:24:EB:59:A8:A6:09:F6:98:85',
+              style: AppTheme.s(11, color: sc.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => school.googleSignIn(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: sc.accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('Riprova',
+                    style: AppTheme.d(12,
+                        weight: FontWeight.w700, color: sc.accent)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (!isSignedIn) {
       // ── Banner di accesso ──────────────────────────────────────────
