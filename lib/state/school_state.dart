@@ -268,9 +268,10 @@ class SchoolState extends ChangeNotifier {
   List<HomeworkItem> get tomorrowHomework {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     return _homework.where((hw) {
-      return hw.dueDate.year == tomorrow.year &&
-             hw.dueDate.month == tomorrow.month &&
-             hw.dueDate.day == tomorrow.day;
+      final localDue = hw.dueDate.toLocal();
+      return localDue.year == tomorrow.year &&
+             localDue.month == tomorrow.month &&
+             localDue.day == tomorrow.day;
     }).toList();
   }
 
@@ -654,7 +655,7 @@ class SchoolState extends ChangeNotifier {
         DateTime? parsedDate;
         try {
           if (c['dataConsegna'] != null) {
-            parsedDate = DateTime.parse(c['dataConsegna']);
+            parsedDate = DateTime.parse(c['dataConsegna']).toLocal();
           } else if (c['data_compito'] != null) {
             final parts = c['data_compito'].split('-');
             parsedDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
