@@ -349,33 +349,48 @@ class HomeScreen extends StatelessWidget {
             Row(
               children: [
                 // Prossima Verifica Card
-                Expanded(
-                  child: SoftCard(
-                    radius: 20,
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Icon(PhosphorIconsRegular.exam, size: 20, color: sc.danger),
-                            Pill(label: '${nextExam.daysRemaining} gg', bg: sc.danger.withValues(alpha: 0.15), fg: sc.danger, fontSize: 10),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text('PROSSIMA VERIFICA', style: AppTheme.d(10, weight: FontWeight.w600, color: sc.textTertiary, letterSpacing: 1.5)),
-                        const SizedBox(height: 4),
-                        Text(nextExam.title, style: AppTheme.d(16, weight: FontWeight.w700, color: sc.text)),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${nextExam.date.day}/${nextExam.date.month} · ${nextExam.time}',
-                          style: AppTheme.s(11.5, color: sc.textSecondary),
-                        ),
-                      ],
+                if (nextExam == null)
+                  Expanded(
+                    child: SoftCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(PhosphorIconsRegular.exam, size: 20, color: sc.textTertiary),
+                          const SizedBox(height: 12),
+                          Text('Nessuna verifica imminente', style: AppTheme.s(13, color: sc.textSecondary)),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: SoftCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Icon(PhosphorIconsRegular.exam, size: 20, color: sc.danger),
+                              Pill(label: '${nextExam.daysRemaining} gg', bg: sc.danger.withValues(alpha: 0.15), fg: sc.danger, fontSize: 10),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text('PROSSIMA VERIFICA', style: AppTheme.d(10, weight: FontWeight.w600, color: sc.textTertiary, letterSpacing: 1.5)),
+                          const SizedBox(height: 4),
+                          Text(nextExam.title, style: AppTheme.d(16, weight: FontWeight.w700, color: sc.text)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${nextExam.date.day}/${nextExam.date.month} · ${nextExam.time}',
+                            style: AppTheme.s(11.5, color: sc.textSecondary),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(width: 12),
 
                 // Compiti del giorno dopo Card

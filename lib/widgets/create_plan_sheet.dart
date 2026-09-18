@@ -194,31 +194,40 @@ class _CreatePlanSheetState extends State<CreatePlanSheet> {
               const SizedBox(height: 16),
 
               // Step 3: Fonti / Trascrizioni
-              Text('3. FONTI & REGISTRAZIONI AUDIO', style: AppTheme.d(12, weight: FontWeight.w600, color: sc.textSecondary, letterSpacing: 1.5)),
+              Text('3. FONTI (Trascrizioni da NAS)', style: AppTheme.d(12, weight: FontWeight.w600, color: sc.textSecondary, letterSpacing: 1.5)),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: sc.bg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: sc.border),
-                ),
-                child: Row(
-                  children: [
-                    Icon(PhosphorIconsRegular.fileAudio, size: 22, color: sc.accent),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('2 Trascrizioni lezioni collegate', style: AppTheme.d(13, weight: FontWeight.w600, color: sc.text)),
-                          Text('Rilevate automaticamente per $_selectedSubject', style: AppTheme.s(11, color: sc.textSecondary)),
-                        ],
-                      ),
+              Builder(
+                builder: (context) {
+                  final nasRecordings = school.recordings.where((r) => r.subject.toLowerCase() == _selectedSubject.toLowerCase()).toList();
+                  final count = nasRecordings.length;
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: sc.bg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: sc.border),
                     ),
-                    Icon(PhosphorIconsFill.checkCircle, size: 18, color: sc.sage),
-                  ],
-                ),
+                    child: Row(
+                      children: [
+                        Icon(PhosphorIconsRegular.hardDrives, size: 22, color: sc.accent),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('$count Trascrizioni lezioni NAS', style: AppTheme.d(13, weight: FontWeight.w600, color: sc.text)),
+                              Text('Trovate sul NAS per $_selectedSubject', style: AppTheme.s(11, color: sc.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        if (count > 0)
+                          Icon(PhosphorIconsFill.checkCircle, size: 18, color: sc.sage)
+                        else
+                          Icon(PhosphorIconsRegular.warning, size: 18, color: sc.warn),
+                      ],
+                    ),
+                  );
+                }
               ),
 
               const SizedBox(height: 16),

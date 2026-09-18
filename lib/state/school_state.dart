@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/models.dart';
 import '../services/google_calendar_service.dart';
+import '../services/nas_service.dart';
 import '../theme/app_colors.dart';
 
 final school = SchoolState();
@@ -247,15 +248,8 @@ class SchoolState extends ChangeNotifier {
   }
 
   // Upcoming exam from scraping
-  final ExamItem _nextExam = ExamItem(
-    id: 'ex-1',
-    title: 'Verifica di Chimica',
-    subject: 'Chimica',
-    date: DateTime(2026, 3, 30),
-    time: '10:15 - 11:15',
-    classroom: 'Aula 3B',
-  );
-  ExamItem get nextExam => _nextExam;
+  ExamItem? _nextExam;
+  ExamItem? get nextExam => _nextExam;
 
   // Tomorrow homework from scraping
   final List<HomeworkItem> _homework = [
@@ -545,14 +539,15 @@ class SchoolState extends ChangeNotifier {
   Future<void> initGoogleCalendar() async {
     await GoogleCalendarService.instance.init();
 
+    // Sincronizza NAS all'avvio a prescindere da Google
+    await syncFromNas();
+    _startSyncTimer();
+
     _authSub = GoogleCalendarService.instance.onUserChanged.listen((user) async {
       _isGoogleSignedIn = user != null;
       notifyListeners();
       if (user != null) {
         await syncFromGoogle();
-        _startSyncTimer();
-      } else {
-        _stopSyncTimer();
       }
     });
 
@@ -560,7 +555,6 @@ class SchoolState extends ChangeNotifier {
     _isGoogleSignedIn = GoogleCalendarService.instance.isSignedIn;
     if (_isGoogleSignedIn) {
       await syncFromGoogle();
-      _startSyncTimer();
     }
     notifyListeners();
   }
@@ -639,11 +633,125 @@ class SchoolState extends ChangeNotifier {
     }
   }
 
+  Future<void> syncFromNas() async {
+    try {
+      final compitiNas = await NasService.getCompiti();
+      final verificheNas = await NasService.getVerifiche();
+      final trascrizioniNas = await NasService.getTrascrizioni();
+
+      // Aggiorna compiti (filtra per "domani" per la homepage, ma salviamo tutto)
+      _homework.clear();
+      for (final c in compitiNas) {
+        DateTime? parsedDate;
+        try {
+          if (c['dataConsegna'] != null) {
+            parsedDate = DateTime.parse(c['dataConsegna']);
+          } else if (c['data_compito'] != null) {
+            final parts = c['data_compito'].split('-');
+            parsedDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+          }
+        } catch (_) {}
+
+        if (parsedDate != null) {
+          final desc = (c['descrizioneCompito'] as List<dynamic>?)?.join('\n') ?? '';
+          _homework.add(HomeworkItem(
+            id: 'hw_nas_${c['materia']}_${parsedDate.millisecondsSinceEpoch}',
+            subject: c['materia'] ?? 'Materia',
+            teacher: c['docente'] ?? '',
+            dueDate: parsedDate,
+            description: desc,
+            attachments: List<String>.from(c['allegati'] ?? []),
+          ));
+
+          // Aggiungiamo anche al calendario se non c'è già
+          final eventExists = _calendarEvents.any((e) => e.type == CalendarEventType.compito && e.date.year == parsedDate!.year && e.date.month == parsedDate.month && e.date.day == parsedDate.day && e.subject == c['materia']);
+          if (!eventExists) {
+            _calendarEvents.add(CalendarEvent(
+              id: 'ce_hw_${c['materia']}_${parsedDate.millisecondsSinceEpoch}',
+              title: 'Compiti ${c['materia']}',
+              subject: c['materia'] ?? 'Materia',
+              date: parsedDate,
+              type: CalendarEventType.compito,
+              details: desc,
+            ));
+          }
+        }
+      }
+
+      // Aggiorna verifiche
+      _nextExam = null; // Resettiamo
+      for (final v in verificheNas) {
+        DateTime? parsedDate;
+        try {
+          final parts = v['data_compito'].split('-');
+          parsedDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        } catch (_) {}
+
+        if (parsedDate != null) {
+          final title = v['titolo'] ?? 'Verifica';
+          final orario = v['orario'] ?? '';
+
+          // Aggiorna prossima verifica per la home (prendi la prima futura)
+          if (_nextExam == null && parsedDate.isAfter(DateTime.now().subtract(const Duration(days: 1)))) {
+            _nextExam = ExamItem(
+              id: 'ex_nas_${parsedDate.millisecondsSinceEpoch}',
+              title: title,
+              subject: 'Materia da definire', // il json verifica_ non ha la materia, potremmo estrarla
+              date: parsedDate,
+              time: orario,
+              classroom: '',
+            );
+          }
+
+          // Aggiungiamo al calendario
+          final eventExists = _calendarEvents.any((e) => e.type == CalendarEventType.verifica && e.date.year == parsedDate!.year && e.date.month == parsedDate.month && e.date.day == parsedDate.day);
+          if (!eventExists) {
+            _calendarEvents.add(CalendarEvent(
+              id: 'ce_ex_${parsedDate.millisecondsSinceEpoch}',
+              title: title,
+              subject: 'Verifica',
+              date: parsedDate,
+              type: CalendarEventType.verifica,
+              details: 'Ore $orario',
+            ));
+          }
+        }
+      }
+
+      // Aggiorna trascrizioni
+      _recordings.clear();
+      for (final tr in trascrizioniNas) {
+        DateTime? parsedDate;
+        try {
+          final parts = tr['data'].split('-');
+          parsedDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        } catch (_) {
+          parsedDate = DateTime.now();
+        }
+
+        _recordings.add(LessonRecording(
+          id: tr['id'],
+          title: tr['titolo'],
+          subject: tr['materia'],
+          date: parsedDate,
+          duration: tr['durata'],
+          status: 'Dal NAS',
+          transcriptSnippet: 'Trascrizione pronta sul NAS per la creazione di piani AI.',
+        ));
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('Errore sync dal NAS: $e');
+    }
+  }
+
   void _startSyncTimer() {
     _syncTimer?.cancel();
     // Sync automatico ogni 60 secondi
     _syncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       syncFromGoogle();
+      syncFromNas();
     });
   }
 
