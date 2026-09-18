@@ -5,7 +5,7 @@ class NasService {
   // Sostituire con l'IP locale del PC se testato su un dispositivo fisico.
   // 10.0.2.2 è per l'emulatore Android.
   // Es: static const String _baseUrl = 'http://192.168.1.31:8000/api';
-  static const String _baseUrl = 'http://192.168.1.31:8000/api';
+  static const String _baseUrl = 'https://noncorroborating-lawson-overdiverse.ngrok-free.dev/api';
 
   static Future<List<dynamic>> getCompiti() async {
     try {
