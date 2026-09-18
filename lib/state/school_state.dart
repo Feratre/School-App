@@ -265,6 +265,15 @@ class SchoolState extends ChangeNotifier {
   ];
   List<HomeworkItem> get homework => List.unmodifiable(_homework);
 
+  List<HomeworkItem> get tomorrowHomework {
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    return _homework.where((hw) {
+      return hw.dueDate.year == tomorrow.year &&
+             hw.dueDate.month == tomorrow.month &&
+             hw.dueDate.day == tomorrow.day;
+    }).toList();
+  }
+
   // Lesson Recordings
   final List<LessonRecording> _recordings = [
     LessonRecording(

@@ -133,7 +133,7 @@ class HomeScreen extends StatelessWidget {
     final dateStr = _formatItalianDate(now);
     final activePlan = school.activePlan;
     final nextExam = school.nextExam;
-    final tomorrowHw = school.homework.isNotEmpty ? school.homework.first : null;
+    final tomorrowHomeworks = school.tomorrowHomework;
 
     return SafeArea(
       bottom: false,
@@ -411,14 +411,29 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         Text('COMPITI DI DOMANI', style: AppTheme.d(10, weight: FontWeight.w600, color: sc.textTertiary, letterSpacing: 1.5)),
                         const SizedBox(height: 4),
-                        Text(tomorrowHw != null ? tomorrowHw.subject : 'Nessun compito', style: AppTheme.d(16, weight: FontWeight.w700, color: sc.text)),
-                        const SizedBox(height: 2),
-                        Text(
-                          tomorrowHw != null ? tomorrowHw.teacher : 'Tutto completato',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.s(11.5, color: sc.textSecondary),
-                        ),
+                        if (tomorrowHomeworks.isEmpty) ...[
+                          Text('Nessun compito', style: AppTheme.d(16, weight: FontWeight.w700, color: sc.text)),
+                          const SizedBox(height: 2),
+                          Text('Tutto completato', style: AppTheme.s(11.5, color: sc.textSecondary)),
+                        ] else ...[
+                          ...tomorrowHomeworks.map((hw) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(hw.subject, style: AppTheme.d(14, weight: FontWeight.w700, color: sc.text)),
+                                  Text(
+                                    hw.description.isEmpty ? 'Esercizi assegnati' : hw.description,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTheme.s(11, color: sc.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
                       ],
                     ),
                   ),
