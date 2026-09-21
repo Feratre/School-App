@@ -131,14 +131,17 @@ class HomeScreen extends StatelessWidget {
     final sc = context.sc;
     final now = DateTime.now();
     final dateStr = _formatItalianDate(now);
-    final activePlan = school.activePlan;
-    final nextExam = school.nextExam;
-    final tomorrowHomeworks = school.tomorrowHomework;
+    return AnimatedBuilder(
+      animation: school,
+      builder: (context, _) {
+        final activePlan = school.activePlan;
+        final nextExam = school.nextExam;
+        final tomorrowHomeworks = school.tomorrowHomework;
 
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
+        return SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -443,6 +446,8 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 }
