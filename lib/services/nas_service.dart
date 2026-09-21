@@ -7,9 +7,13 @@ class NasService {
   // Es: static const String _baseUrl = 'http://192.168.1.31:8000/api';
   static const String _baseUrl = 'https://noncorroborating-lawson-overdiverse.ngrok-free.dev/api';
 
+  static const Map<String, String> _headers = {
+    'ngrok-skip-browser-warning': 'true',
+  };
+
   static Future<List<dynamic>> getCompiti() async {
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/compiti'));
+      final res = await http.get(Uri.parse('$_baseUrl/compiti'), headers: _headers);
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as List<dynamic>;
       }
@@ -21,7 +25,7 @@ class NasService {
 
   static Future<List<dynamic>> getVerifiche() async {
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/verifiche'));
+      final res = await http.get(Uri.parse('$_baseUrl/verifiche'), headers: _headers);
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as List<dynamic>;
       }
@@ -33,7 +37,7 @@ class NasService {
 
   static Future<List<dynamic>> getTrascrizioni() async {
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/trascrizioni'));
+      final res = await http.get(Uri.parse('$_baseUrl/trascrizioni'), headers: _headers);
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as List<dynamic>;
       }
