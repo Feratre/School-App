@@ -31,7 +31,9 @@ class NotificationService {
     const InitializationSettings initSettings = InitializationSettings(
         android: androidSettings, iOS: iosSettings);
 
-    await _notificationsPlugin.initialize(initSettings);
+    await _notificationsPlugin.initialize(
+      settings: initSettings,
+    );
 
     // Richiede i permessi su Android 13+
     await _notificationsPlugin
@@ -61,6 +63,11 @@ class NotificationService {
     const NotificationDetails platformDetails =
         NotificationDetails(android: androidDetails);
 
-    await _notificationsPlugin.show(id, title, body, platformDetails);
+    await _notificationsPlugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: platformDetails,
+    );
   }
 }
