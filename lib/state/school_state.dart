@@ -5,11 +5,24 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/google_calendar_service.dart';
 import '../services/nas_service.dart';
+import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
 
 final school = SchoolState();
 
 class SchoolState extends ChangeNotifier {
+  static final SchoolState instance = SchoolState._internal();
+  factory SchoolState() => instance;
+  SchoolState._internal() {
+    _init();
+  }
+
+  Future<void> _init() async {
+    await NotificationService.instance.init();
+  }
+
+  bool _isFirstNasSync = true;
+
   String _route = 'home';
   String get route => _route;
 
@@ -649,6 +662,9 @@ class SchoolState extends ChangeNotifier {
       final verificheNas = await NasService.getVerifiche();
       final trascrizioniNas = await NasService.getTrascrizioni();
 
+      final oldHomeworkIds = _homework.map((h) => h.id).toSet();
+      final oldExamIds = _calendarEvents.where((e) => e.type == CalendarEventType.verifica).map((e) => e.id).toSet();
+
       // Aggiorna compiti (filtra per "domani" per la homepage, ma salviamo tutto)
       _homework.clear();
       for (final c in compitiNas) {
@@ -664,8 +680,18 @@ class SchoolState extends ChangeNotifier {
 
         if (parsedDate != null) {
           final desc = (c['descrizioneCompito'] as List<dynamic>?)?.join('\n') ?? '';
+          final newId = 'hw_nas_${c['materia']}_${parsedDate.millisecondsSinceEpoch}';
+          
+          if (!_isFirstNasSync && !oldHomeworkIds.contains(newId)) {
+            NotificationService.instance.showNotification(
+              id: newId.hashCode,
+              title: 'Nuovo compito',
+              body: '${c['materia']}',
+            );
+          }
+
           _homework.add(HomeworkItem(
-            id: 'hw_nas_${c['materia']}_${parsedDate.millisecondsSinceEpoch}',
+            id: newId,
             subject: c['materia'] ?? 'Materia',
             teacher: c['docente'] ?? '',
             dueDate: parsedDate,
@@ -700,11 +726,20 @@ class SchoolState extends ChangeNotifier {
         if (parsedDate != null) {
           final title = v['titolo'] ?? 'Verifica';
           final orario = v['orario'] ?? '';
+          final newExId = 'ex_nas_${parsedDate.millisecondsSinceEpoch}';
+
+          if (!_isFirstNasSync && !oldExamIds.contains('ce_ex_${parsedDate.millisecondsSinceEpoch}')) {
+            NotificationService.instance.showNotification(
+              id: newExId.hashCode,
+              title: 'Nuova verifica',
+              body: title,
+            );
+          }
 
           // Aggiorna prossima verifica per la home (prendi la prima futura)
           if (_nextExam == null && parsedDate.isAfter(DateTime.now().subtract(const Duration(days: 1)))) {
             _nextExam = ExamItem(
-              id: 'ex_nas_${parsedDate.millisecondsSinceEpoch}',
+              id: newExId,
               title: title,
               subject: 'Materia da definire', // il json verifica_ non ha la materia, potremmo estrarla
               date: parsedDate,
@@ -727,6 +762,8 @@ class SchoolState extends ChangeNotifier {
           }
         }
       }
+
+      _isFirstNasSync = false;
 
       // Aggiorna trascrizioni
       _recordings.clear();
