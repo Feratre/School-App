@@ -58,7 +58,7 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
       }
     }
 
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['m4a', 'mp3', 'wav', 'aac'],
     );
