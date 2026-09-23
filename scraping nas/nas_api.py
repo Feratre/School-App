@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
+import shutil
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
@@ -16,14 +17,27 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RISULTATI_DIR = os.path.join(BASE_DIR, "risultati")
+UPLOAD_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../AI Agents/Transcription/audio_uploads"))
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.get("/api/compiti")
 def get_compiti():
-    compiti_file = os.path.join(RISULTATI_DIR, "tutti_i_compiti.json")
-    if os.path.exists(compiti_file):
-        with open(compiti_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    compiti = []
+    # Trova tutti i file dei compiti
+    for file_path in glob.glob(os.path.join(RISULTATI_DIR, "compiti_*.json")):
+        # Evita di duplicare se c'è un file "tutti_i_compiti" vecchio
+        if "tutti_i" in file_path:
+            continue
+        with open(file_path, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+                if isinstance(data, list):
+                    compiti.extend(data)
+                else:
+                    compiti.append(data)
+            except:
+                pass
+    return compiti
 
 @app.get("/api/verifiche")
 def get_verifiche():
@@ -48,6 +62,17 @@ def get_trascrizioni():
         {"id": "tr_1", "titolo": "Lezione Fisica - Elettrostatica", "data": "14-09-2026", "materia": "Fisica", "durata": "45 min"},
         {"id": "tr_2", "titolo": "Lezione Matematica - Goniometria", "data": "15-09-2026", "materia": "Matematica", "durata": "50 min"}
     ]
+
+
+@app.post("/api/upload-audio")
+async def upload_audio(file: UploadFile = File(...)):
+    try:
+        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return {"status": "success", "filename": file.filename, "path": file_path}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     import uvicorn

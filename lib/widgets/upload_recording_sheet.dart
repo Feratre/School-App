@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../services/nas_service.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 import '../state/school_state.dart';
@@ -23,12 +27,21 @@ class UploadRecordingSheet extends StatefulWidget {
 }
 
 class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
-  final _titleCtrl = TextEditingController(text: 'Lezione Filosofia: Kant e Critica Ragion Pura');
+  final _titleCtrl = TextEditingController(
+    text: 'Lezione Filosofia: Kant e Critica Ragion Pura',
+  );
   String _selectedSubject = 'Filosofia';
   bool _isUploading = false;
   String _uploadStatus = '';
 
-  final _subjects = ['Filosofia', 'Chimica', 'Matematica', 'Fisica', 'Storia', 'Inglese'];
+  final _subjects = [
+    'Filosofia',
+    'Chimica',
+    'Matematica',
+    'Fisica',
+    'Storia',
+    'Inglese',
+  ];
 
   @override
   void dispose() {
@@ -37,34 +50,55 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
   }
 
   void _startUpload() async {
+    if (Platform.isAndroid) {
+      final storageStatus = await Permission.storage.request();
+      final audioStatus = await Permission.audio.request();
+      if (!storageStatus.isGranted && !audioStatus.isGranted) {
+        // Continue anyway because FilePicker uses SAF on newer Androids
+      }
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['m4a', 'mp3', 'wav', 'aac'],
+    );
+
+    if (result == null || result.files.single.path == null) {
+      return; // Canceled
+    }
+
+    final file = File(result.files.single.path!);
+
     setState(() {
       _isUploading = true;
-      _uploadStatus = 'Upload file audio (WAV / MP3)...';
+      _uploadStatus = 'Caricamento di ${result.files.single.name} sul NAS...';
     });
 
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() => _uploadStatus = 'Avvio modello Whisper per Trascrizione...');
+    final success = await NasService.uploadAudio(file);
 
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _uploadStatus = 'Divisione automatica argomenti per materia...');
-
-    await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
-    school.addRecording(
-      title: _titleCtrl.text.trim().isEmpty ? 'Nuova Lezione' : _titleCtrl.text.trim(),
-      subject: _selectedSubject,
-    );
-
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Lezione registrata e trascritta per $_selectedSubject!'),
-        backgroundColor: const Color(0xFF2E7D32),
-      ),
-    );
+    if (success) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Audio inviato correttamente al NAS per $_selectedSubject!',
+          ),
+          backgroundColor: const Color(0xFF2E7D32),
+        ),
+      );
+    } else {
+      setState(() {
+        _isUploading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Errore di caricamento sul NAS.'),
+          backgroundColor: context.sc.danger,
+        ),
+      );
+    }
   }
 
   @override
@@ -77,7 +111,12 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border.all(color: sc.border),
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        24 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -93,13 +132,27 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
                   children: [
                     Kicker('AUDIO AGENTS · TRASCRIZIONE', color: sc.accent),
                     const SizedBox(height: 2),
-                    Text('Upload Registrazione', style: AppTheme.d(22, weight: FontWeight.w700, color: sc.text)),
+                    Text(
+                      'Upload Registrazione',
+                      style: AppTheme.d(
+                        22,
+                        weight: FontWeight.w700,
+                        color: sc.text,
+                      ),
+                    ),
                   ],
                 ),
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: sc.accentSoft, borderRadius: BorderRadius.circular(12)),
-                  child: Icon(PhosphorIconsFill.microphone, size: 22, color: sc.accent),
+                  decoration: BoxDecoration(
+                    color: sc.accentSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    PhosphorIconsFill.microphone,
+                    size: 22,
+                    color: sc.accent,
+                  ),
                 ),
               ],
             ),
@@ -117,10 +170,18 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
                   children: [
                     const CircularProgressIndicator(strokeWidth: 3),
                     const SizedBox(height: 18),
-                    Text(_uploadStatus, textAlign: TextAlign.center, style: AppTheme.s(14, weight: FontWeight.w600, color: sc.text)),
+                    Text(
+                      _uploadStatus,
+                      textAlign: TextAlign.center,
+                      style: AppTheme.s(
+                        14,
+                        weight: FontWeight.w600,
+                        color: sc.text,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text(
-                      'L\'audio viene trascritto con Whisper AI e segmentato automaticamente per materia.',
+                      'Il file viene inviato al NAS...',
                       textAlign: TextAlign.center,
                       style: AppTheme.s(12, color: sc.textSecondary),
                     ),
@@ -138,17 +199,39 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
                 ),
                 child: Column(
                   children: [
-                    Icon(PhosphorIconsRegular.uploadSimple, size: 36, color: sc.accent),
+                    Icon(
+                      PhosphorIconsRegular.uploadSimple,
+                      size: 36,
+                      color: sc.accent,
+                    ),
                     const SizedBox(height: 10),
-                    Text('Trascina o tocca per selezionare audio', style: AppTheme.d(14, weight: FontWeight.w600, color: sc.text)),
+                    Text(
+                      'Trascina o tocca per selezionare audio',
+                      style: AppTheme.d(
+                        14,
+                        weight: FontWeight.w600,
+                        color: sc.text,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('Supporta file WAV, MP3, M4A fino a 200MB', style: AppTheme.s(12, color: sc.textSecondary)),
+                    Text(
+                      'Supporta file WAV, MP3, M4A fino a 200MB',
+                      style: AppTheme.s(12, color: sc.textSecondary),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
 
-              Text('MATERIA DELLA LEZIONE', style: AppTheme.d(12, weight: FontWeight.w600, color: sc.textSecondary, letterSpacing: 1.5)),
+              Text(
+                'MATERIA DELLA LEZIONE',
+                style: AppTheme.d(
+                  12,
+                  weight: FontWeight.w600,
+                  color: sc.textSecondary,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 8),
               SizedBox(
                 height: 38,
@@ -170,7 +253,15 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
               ),
               const SizedBox(height: 16),
 
-              Text('TITOLO / ARGOMENTO LEZIONE', style: AppTheme.d(12, weight: FontWeight.w600, color: sc.textSecondary, letterSpacing: 1.5)),
+              Text(
+                'TITOLO / ARGOMENTO LEZIONE',
+                style: AppTheme.d(
+                  12,
+                  weight: FontWeight.w600,
+                  color: sc.textSecondary,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
@@ -178,7 +269,10 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: sc.border),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
                 child: TextField(
                   controller: _titleCtrl,
                   style: AppTheme.s(14, color: sc.text),
@@ -192,7 +286,7 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
               const SizedBox(height: 22),
 
               PrimaryButton(
-                label: 'CARICA E TRASCRIVI CON AI',
+                label: 'SELEZIONA FILE E INVIA AL NAS',
                 icon: PhosphorIconsFill.sparkle,
                 bg: sc.ember,
                 onTap: _startUpload,
