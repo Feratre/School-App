@@ -292,6 +292,7 @@ class SchoolState extends ChangeNotifier {
       ],
     ),
   ];
+  List<AppNotification> get notifications => List.unmodifiable(_notifications);
   List<HomeworkItem> get homework => List.unmodifiable(_homework);
 
   List<HomeworkItem> get tomorrowHomework {
@@ -776,6 +777,14 @@ class SchoolState extends ChangeNotifier {
             title: 'Nuovo compito',
             body: '${c['materia']}',
           );
+          _notifications.insert(
+            0,
+            AppNotification(
+              title: 'Nuovo compito',
+              body: c['materia'] ?? 'Materia sconosciuta',
+              time: DateTime.now(),
+            ),
+          );
         }
 
         _homework.add(
@@ -838,6 +847,14 @@ class SchoolState extends ChangeNotifier {
             id: newExId.hashCode,
             title: 'Nuova verifica',
             body: title,
+          );
+          _notifications.insert(
+            0,
+            AppNotification(
+              title: 'Nuova verifica',
+              body: title,
+              time: DateTime.now(),
+            ),
           );
         }
 
@@ -945,4 +962,10 @@ class SchoolState extends ChangeNotifier {
     _authSub?.cancel();
     super.dispose();
   }
+}
+
+final List<AppNotification> _notifications = [];
+void clearNotifications() {
+  _notifications.clear();
+  notifyListeners();
 }

@@ -22,11 +22,9 @@ class FocusPlanPickerSheet extends StatelessWidget {
 
   void _startFocusSession(BuildContext context, StudyPlan plan) {
     Navigator.of(context).pop(); // Chiudi bottom sheet
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FocusModeScreen(plan: plan),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => FocusModeScreen(plan: plan)));
   }
 
   @override
@@ -43,7 +41,12 @@ class FocusPlanPickerSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border.all(color: sc.border),
       ),
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.paddingOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        24 + MediaQuery.paddingOf(context).bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,11 +97,18 @@ class FocusPlanPickerSheet extends StatelessWidget {
                       final plan = plans[index];
                       final todayDay = plan.days.firstWhere(
                         (d) => d.isToday,
-                        orElse: () => plan.days.isNotEmpty ? plan.days.first : const StudyDay(dayNumber: 1, topic: '', summary: '', materials: []),
+                        orElse: () => plan.days.isNotEmpty
+                            ? plan.days.first
+                            : const StudyDay(
+                                dayNumber: 1,
+                                topic: '',
+                                summary: '',
+                                materials: [],
+                              ),
                       );
 
-                      return GestureDetector(
-                        onTap: () => _startFocusSession(context, plan),
+                      return Padding(
+                        padding: EdgeInsets.zero,
                         child: SoftCard(
                           radius: 20,
                           padding: const EdgeInsets.all(16),
@@ -107,11 +117,14 @@ class FocusPlanPickerSheet extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Pill(
                                     label: plan.subject.toUpperCase(),
-                                    bg: plan.subjectColor.withValues(alpha: 0.15),
+                                    bg: plan.subjectColor.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     fg: plan.subjectColor,
                                     fontSize: 10,
                                   ),
@@ -127,13 +140,20 @@ class FocusPlanPickerSheet extends StatelessWidget {
                               const SizedBox(height: 10),
                               Text(
                                 plan.title,
-                                style: AppTheme.d(16, weight: FontWeight.w700, color: sc.text),
+                                style: AppTheme.d(
+                                  16,
+                                  weight: FontWeight.w700,
+                                  color: sc.text,
+                                ),
                               ),
                               if (todayDay.topic.isNotEmpty) ...[
                                 const SizedBox(height: 3),
                                 Text(
                                   'Argomento: ${todayDay.topic}',
-                                  style: AppTheme.s(12, color: sc.textSecondary),
+                                  style: AppTheme.s(
+                                    12,
+                                    color: sc.textSecondary,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -148,32 +168,56 @@ class FocusPlanPickerSheet extends StatelessWidget {
                                         value: plan.progress,
                                         minHeight: 5,
                                         backgroundColor: sc.bgRaised2,
-                                        valueColor: AlwaysStoppedAnimation(plan.subjectColor),
+                                        valueColor: AlwaysStoppedAnimation(
+                                          plan.subjectColor,
+                                        ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
                                     '${(plan.progress * 100).toInt()}%',
-                                    style: AppTheme.s(11, weight: FontWeight.w600, color: sc.textTertiary),
+                                    style: AppTheme.s(
+                                      11,
+                                      weight: FontWeight.w600,
+                                      color: sc.textTertiary,
+                                    ),
                                   ),
                                   const SizedBox(width: 14),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: sc.ember,
-                                      borderRadius: BorderRadius.circular(100),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(PhosphorIconsFill.play, size: 11, color: sc.onEmber),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'FOCUS',
-                                          style: AppTheme.d(10.5, weight: FontWeight.w700, color: sc.onEmber, letterSpacing: 0.5),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        _startFocusSession(context, plan),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: sc.ember,
+                                        borderRadius: BorderRadius.circular(
+                                          100,
                                         ),
-                                      ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            PhosphorIconsFill.play,
+                                            size: 11,
+                                            color: sc.onEmber,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'FOCUS',
+                                            style: AppTheme.d(
+                                              10.5,
+                                              weight: FontWeight.w700,
+                                              color: sc.onEmber,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
