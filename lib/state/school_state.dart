@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/google_calendar_service.dart';
@@ -19,6 +21,7 @@ class SchoolState extends ChangeNotifier {
 
   Future<void> _init() async {
     await NotificationService.instance.init();
+    await _loadCache();
   }
 
   bool _isFirstNasSync = true;
@@ -52,7 +55,11 @@ class SchoolState extends ChangeNotifier {
   List<bool> get weekActivity => List.unmodifiable(_weekActivity);
 
   // Calendario — parte dal mese corrente
-  DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _calendarMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
   DateTime get calendarMonth => _calendarMonth;
 
   DateTime _selectedDate = DateTime.now();
@@ -130,7 +137,8 @@ class SchoolState extends ChangeNotifier {
               name: 'Riassunto_AI_Sostituzione_Aromatica.pdf',
               type: 'summary',
               sizeOrDuration: '3 pag.',
-              summarySnippet: 'Intermedio di Wheland e delocalizzazione di carica',
+              summarySnippet:
+                  'Intermedio di Wheland e delocalizzazione di carica',
             ),
             StudyMaterial(
               id: 'm3_2',
@@ -183,14 +191,16 @@ class SchoolState extends ChangeNotifier {
       progress: 0.25,
       totalDays: 7,
       currentDayIndex: 2,
-      keyWeakness: 'Metodo del completamento del quadrato e coordinate del vertice',
+      keyWeakness:
+          'Metodo del completamento del quadrato e coordinate del vertice',
       podcastTitle: 'Podcast AI: Trucchi per il Completamento Quadrato',
       podcastDuration: '10 min',
       days: [
         StudyDay(
           dayNumber: 1,
           topic: 'Risoluzione geometrica del completamento del quadrato',
-          summary: 'Aggiunta e sottrazione del termine (b/2a)^2 per formare il quadrato di un binomio.',
+          summary:
+              'Aggiunta e sottrazione del termine (b/2a)^2 per formare il quadrato di un binomio.',
           materials: [
             StudyMaterial(
               id: 'm_mat_1',
@@ -204,7 +214,8 @@ class SchoolState extends ChangeNotifier {
         StudyDay(
           dayNumber: 2,
           topic: 'Equazione della parabola con asse parallelo all’asse y',
-          summary: 'Formule del vertice V(-b/2a, -delta/4a), fuoco e retta direttrice.',
+          summary:
+              'Formule del vertice V(-b/2a, -delta/4a), fuoco e retta direttrice.',
           materials: [
             StudyMaterial(
               id: 'm_mat_2',
@@ -233,8 +244,10 @@ class SchoolState extends ChangeNotifier {
       days: [
         StudyDay(
           dayNumber: 1,
-          topic: 'L’attentato di Sarajevo e il sistema di alleanze contrapposte',
-          summary: 'La Triplice Intesa e la Triplice Alleanza, mobilitazione generale e piano Schlieffen.',
+          topic:
+              'L’attentato di Sarajevo e il sistema di alleanze contrapposte',
+          summary:
+              'La Triplice Intesa e la Triplice Alleanza, mobilitazione generale e piano Schlieffen.',
           materials: [
             StudyMaterial(
               id: 'm_st_1',
@@ -273,7 +286,10 @@ class SchoolState extends ChangeNotifier {
       dueDate: DateTime(2026, 2, 6),
       description:
           'In allegato Metodo del completamento dei quadrati\nesercizi pag 388 I FONDAMENTALI + N 49, 50, 51, 59, 61, 66, 70, 72, 73, 75, 94, 98',
-      attachments: ['metodo del completamento del quadrato.pdf', 'esercizi per interrogazione 6 febbraio.pdf'],
+      attachments: [
+        'metodo del completamento del quadrato.pdf',
+        'esercizi per interrogazione 6 febbraio.pdf',
+      ],
     ),
   ];
   List<HomeworkItem> get homework => List.unmodifiable(_homework);
@@ -283,8 +299,8 @@ class SchoolState extends ChangeNotifier {
     return _homework.where((hw) {
       final localDue = hw.dueDate.toLocal();
       return localDue.year == tomorrow.year &&
-             localDue.month == tomorrow.month &&
-             localDue.day == tomorrow.day;
+          localDue.month == tomorrow.month &&
+          localDue.day == tomorrow.day;
     }).toList();
   }
 
@@ -317,7 +333,8 @@ class SchoolState extends ChangeNotifier {
       date: DateTime(2026, 3, 24),
       duration: '40 min',
       status: 'Pronto per AI',
-      transcriptSnippet: 'Trascrizione generata tramite Whisper AI pronta per estrazione schemi e podcast riassuntivo.',
+      transcriptSnippet:
+          'Trascrizione generata tramite Whisper AI pronta per estrazione schemi e podcast riassuntivo.',
     ),
   ];
   List<LessonRecording> get recordings => List.unmodifiable(_recordings);
@@ -330,7 +347,8 @@ class SchoolState extends ChangeNotifier {
       subject: 'Chimica',
       date: DateTime(2026, 3, 30),
       type: CalendarEventType.verifica,
-      details: 'Ore 10:15 - 11:15 in Aula 3B. Argomenti: Ibridazione, Alcani, Aromatici.',
+      details:
+          'Ore 10:15 - 11:15 in Aula 3B. Argomenti: Ibridazione, Alcani, Aromatici.',
     ),
     CalendarEvent(
       id: 'ce-2',
@@ -451,8 +469,10 @@ class SchoolState extends ChangeNotifier {
         daysCount,
         (i) => StudyDay(
           dayNumber: i + 1,
-          topic: 'Giorno ${i + 1}: Studio approfondito di $title (Modulo ${i + 1})',
-          summary: 'Pianificazione automatica generata dall’AI con focus sulle carenze: $keyWeakness.',
+          topic:
+              'Giorno ${i + 1}: Studio approfondito di $title (Modulo ${i + 1})',
+          summary:
+              'Pianificazione automatica generata dall’AI con focus sulle carenze: $keyWeakness.',
           materials: [
             StudyMaterial(
               id: 'm_new_${i + 1}',
@@ -482,7 +502,8 @@ class SchoolState extends ChangeNotifier {
       date: DateTime.now(),
       duration: '35 min',
       status: 'Trascritto (100%)',
-      transcriptSnippet: 'Audio analizzato con successo. Trascrizione disponibile e integrata nel piano AI.',
+      transcriptSnippet:
+          'Audio analizzato con successo. Trascrizione disponibile e integrata nel piano AI.',
     );
     _recordings.insert(0, rec);
     notifyListeners();
@@ -503,10 +524,10 @@ class SchoolState extends ChangeNotifier {
     final typeLabel = type == CalendarEventType.verifica
         ? 'Verifica'
         : type == CalendarEventType.compito
-            ? 'Compito'
-            : type == CalendarEventType.studio
-                ? 'Studio'
-                : 'Altro';
+        ? 'Compito'
+        : type == CalendarEventType.studio
+        ? 'Studio'
+        : 'Altro';
 
     final cleanDetails = details
         .replaceAll(RegExp(r'\[CalendarEventType\.[a-zA-Z]+\]\s*'), '')
@@ -515,8 +536,8 @@ class SchoolState extends ChangeNotifier {
     final formattedDescription = cleanDetails.isEmpty
         ? typeLabel
         : cleanDetails.toLowerCase().startsWith(typeLabel.toLowerCase())
-            ? cleanDetails
-            : '$typeLabel - $cleanDetails';
+        ? cleanDetails
+        : '$typeLabel - $cleanDetails';
 
     // Crea su Google Calendar se autenticato
     if (_isGoogleSignedIn) {
@@ -542,10 +563,17 @@ class SchoolState extends ChangeNotifier {
   }
 
   Future<void> removeCalendarEvent(String id) async {
-    final event = _calendarEvents.firstWhere((e) => e.id == id,
-        orElse: () => CalendarEvent(
-            id: '', title: '', subject: '', date: DateTime.now(),
-            type: CalendarEventType.altro, details: ''));
+    final event = _calendarEvents.firstWhere(
+      (e) => e.id == id,
+      orElse: () => CalendarEvent(
+        id: '',
+        title: '',
+        subject: '',
+        date: DateTime.now(),
+        type: CalendarEventType.altro,
+        details: '',
+      ),
+    );
 
     // Elimina da Google Calendar se ha un ID remoto
     if (_isGoogleSignedIn && event.googleEventId != null) {
@@ -566,7 +594,9 @@ class SchoolState extends ChangeNotifier {
     await syncFromNas();
     _startSyncTimer();
 
-    _authSub = GoogleCalendarService.instance.onUserChanged.listen((user) async {
+    _authSub = GoogleCalendarService.instance.onUserChanged.listen((
+      user,
+    ) async {
       _isGoogleSignedIn = user != null;
       notifyListeners();
       if (user != null) {
@@ -612,7 +642,9 @@ class SchoolState extends ChangeNotifier {
       );
 
       // Mantieni solo gli eventi locali (senza googleEventId)
-      final localOnly = _calendarEvents.where((e) => e.googleEventId == null).toList();
+      final localOnly = _calendarEvents
+          .where((e) => e.googleEventId == null)
+          .toList();
 
       // Converti gli eventi Google in CalendarEvent locali
       final googleEvents = <CalendarEvent>[];
@@ -623,23 +655,25 @@ class SchoolState extends ChangeNotifier {
         final type = category == 'verifica'
             ? CalendarEventType.verifica
             : category == 'compito'
-                ? CalendarEventType.compito
-                : CalendarEventType.altro;
+            ? CalendarEventType.compito
+            : CalendarEventType.altro;
 
         final rawDescription = ge.description ?? '';
         final cleanDescription = rawDescription
             .replaceAll(RegExp(r'\[CalendarEventType\.[a-zA-Z]+\]\s*'), '')
             .trim();
 
-        googleEvents.add(CalendarEvent(
-          id: 'g_${ge.id}',
-          googleEventId: ge.id,
-          title: ge.summary ?? 'Evento',
-          subject: ge.organizer?.displayName ?? 'Google Calendar',
-          date: date,
-          type: type,
-          details: cleanDescription,
-        ));
+        googleEvents.add(
+          CalendarEvent(
+            id: 'g_${ge.id}',
+            googleEventId: ge.id,
+            title: ge.summary ?? 'Evento',
+            subject: ge.organizer?.displayName ?? 'Google Calendar',
+            date: date,
+            type: type,
+            details: cleanDescription,
+          ),
+        );
       }
 
       _calendarEvents
@@ -656,140 +690,238 @@ class SchoolState extends ChangeNotifier {
     }
   }
 
-  Future<void> syncFromNas() async {
+  // =====================================
+  // CACHE LOCALE
+  // =====================================
+
+  Future<void> _loadCache() async {
     try {
-      final compitiNas = await NasService.getCompiti();
-      final verificheNas = await NasService.getVerifiche();
-      final trascrizioniNas = await NasService.getTrascrizioni();
+      final prefs = await SharedPreferences.getInstance();
+      final compitiStr = prefs.getString('cache_compiti');
+      final verificheStr = prefs.getString('cache_verifiche');
+      final trascrizioniStr = prefs.getString('cache_trascrizioni');
 
-      final oldHomeworkIds = _homework.map((h) => h.id).toSet();
-      final oldExamIds = _calendarEvents.where((e) => e.type == CalendarEventType.verifica).map((e) => e.id).toSet();
+      if (compitiStr != null &&
+          verificheStr != null &&
+          trascrizioniStr != null) {
+        final compitiNas = jsonDecode(compitiStr) as List<dynamic>;
+        final verificheNas = jsonDecode(verificheStr) as List<dynamic>;
+        final trascrizioniNas = jsonDecode(trascrizioniStr) as List<dynamic>;
 
-      // Aggiorna compiti (filtra per "domani" per la homepage, ma salviamo tutto)
-      _homework.clear();
-      for (final c in compitiNas) {
-        DateTime? parsedDate;
-        try {
-          if (c['dataConsegna'] != null) {
-            parsedDate = DateTime.parse(c['dataConsegna']).toLocal();
-          } else if (c['data_compito'] != null) {
-            final parts = c['data_compito'].split('-');
-            parsedDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-          }
-        } catch (_) {}
+        _processNasData(
+          compitiNas,
+          verificheNas,
+          trascrizioniNas,
+          fromCache: true,
+        );
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Errore nel caricamento della cache: $e');
+    }
+  }
 
-        if (parsedDate != null) {
-          final desc = (c['descrizioneCompito'] as List<dynamic>?)?.join('\n') ?? '';
-          final newId = 'hw_nas_${c['materia']}_${parsedDate.millisecondsSinceEpoch}';
-          
-          if (!_isFirstNasSync && !oldHomeworkIds.contains(newId)) {
-            NotificationService.instance.showNotification(
-              id: newId.hashCode,
-              title: 'Nuovo compito',
-              body: '${c['materia']}',
-            );
-          }
+  Future<void> _saveCache(
+    List<dynamic> compitiNas,
+    List<dynamic> verificheNas,
+    List<dynamic> trascrizioniNas,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cache_compiti', jsonEncode(compitiNas));
+      await prefs.setString('cache_verifiche', jsonEncode(verificheNas));
+      await prefs.setString('cache_trascrizioni', jsonEncode(trascrizioniNas));
+    } catch (e) {
+      debugPrint('Errore nel salvataggio della cache: $e');
+    }
+  }
 
-          _homework.add(HomeworkItem(
+  void _processNasData(
+    List<dynamic> compitiNas,
+    List<dynamic> verificheNas,
+    List<dynamic> trascrizioniNas, {
+    bool fromCache = false,
+  }) {
+    final oldHomeworkIds = _homework.map((h) => h.id).toSet();
+    final oldExamIds = _calendarEvents
+        .where((e) => e.type == CalendarEventType.verifica)
+        .map((e) => e.id)
+        .toSet();
+
+    _homework.clear();
+    for (final c in compitiNas) {
+      DateTime? parsedDate;
+      try {
+        if (c['dataConsegna'] != null) {
+          parsedDate = DateTime.parse(c['dataConsegna']).toLocal();
+        } else if (c['data_compito'] != null) {
+          final parts = c['data_compito'].split('-');
+          parsedDate = DateTime(
+            int.parse(parts[2]),
+            int.parse(parts[1]),
+            int.parse(parts[0]),
+          );
+        }
+      } catch (_) {}
+
+      if (parsedDate != null) {
+        final desc =
+            (c['descrizioneCompito'] as List<dynamic>?)?.join('\n') ?? '';
+        final newId =
+            'hw_nas_${c['materia']}_${parsedDate.millisecondsSinceEpoch}';
+
+        if (!fromCache && !_isFirstNasSync && !oldHomeworkIds.contains(newId)) {
+          NotificationService.instance.showNotification(
+            id: newId.hashCode,
+            title: 'Nuovo compito',
+            body: '${c['materia']}',
+          );
+        }
+
+        _homework.add(
+          HomeworkItem(
             id: newId,
             subject: c['materia'] ?? 'Materia',
             teacher: c['docente'] ?? '',
             dueDate: parsedDate,
             description: desc,
             attachments: List<String>.from(c['allegati'] ?? []),
-          ));
+          ),
+        );
 
-          // Aggiungiamo anche al calendario se non c'è già
-          final eventExists = _calendarEvents.any((e) => e.type == CalendarEventType.compito && e.date.year == parsedDate!.year && e.date.month == parsedDate.month && e.date.day == parsedDate.day && e.subject == c['materia']);
-          if (!eventExists) {
-            _calendarEvents.add(CalendarEvent(
+        final eventExists = _calendarEvents.any(
+          (e) =>
+              e.type == CalendarEventType.compito &&
+              e.date.year == parsedDate!.year &&
+              e.date.month == parsedDate.month &&
+              e.date.day == parsedDate.day &&
+              e.subject == c['materia'],
+        );
+        if (!eventExists) {
+          _calendarEvents.add(
+            CalendarEvent(
               id: 'ce_hw_${c['materia']}_${parsedDate.millisecondsSinceEpoch}',
               title: 'Compiti ${c['materia']}',
               subject: c['materia'] ?? 'Materia',
               date: parsedDate,
               type: CalendarEventType.compito,
               details: desc,
-            ));
-          }
+            ),
+          );
         }
       }
+    }
 
-      // Aggiorna verifiche
-      _nextExam = null; // Resettiamo
-      for (final v in verificheNas) {
-        DateTime? parsedDate;
-        try {
-          final parts = v['data_compito'].split('-');
-          parsedDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-        } catch (_) {}
+    _nextExam = null;
+    for (final v in verificheNas) {
+      DateTime? parsedDate;
+      try {
+        final parts = v['data_compito'].split('-');
+        parsedDate = DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      } catch (_) {}
 
-        if (parsedDate != null) {
-          final title = v['titolo'] ?? 'Verifica';
-          final orario = v['orario'] ?? '';
-          final newExId = 'ex_nas_${parsedDate.millisecondsSinceEpoch}';
+      if (parsedDate != null) {
+        final title = v['titolo'] ?? 'Verifica';
+        final orario = v['orario'] ?? '';
+        final newExId = 'ex_nas_${parsedDate.millisecondsSinceEpoch}';
 
-          if (!_isFirstNasSync && !oldExamIds.contains('ce_ex_${parsedDate.millisecondsSinceEpoch}')) {
-            NotificationService.instance.showNotification(
-              id: newExId.hashCode,
-              title: 'Nuova verifica',
-              body: title,
-            );
-          }
+        if (!fromCache &&
+            !_isFirstNasSync &&
+            !oldExamIds.contains(
+              'ce_ex_${parsedDate.millisecondsSinceEpoch}',
+            )) {
+          NotificationService.instance.showNotification(
+            id: newExId.hashCode,
+            title: 'Nuova verifica',
+            body: title,
+          );
+        }
 
-          // Aggiorna prossima verifica per la home (prendi la prima futura)
-          if (_nextExam == null && parsedDate.isAfter(DateTime.now().subtract(const Duration(days: 1)))) {
-            _nextExam = ExamItem(
-              id: newExId,
-              title: title,
-              subject: 'Materia da definire', // il json verifica_ non ha la materia, potremmo estrarla
-              date: parsedDate,
-              time: orario,
-              classroom: '',
-            );
-          }
+        if (_nextExam == null &&
+            parsedDate.isAfter(
+              DateTime.now().subtract(const Duration(days: 1)),
+            )) {
+          _nextExam = ExamItem(
+            id: newExId,
+            title: title,
+            subject: 'Materia da definire',
+            date: parsedDate,
+            time: orario,
+            classroom: '',
+          );
+        }
 
-          // Aggiungiamo al calendario
-          final eventExists = _calendarEvents.any((e) => e.type == CalendarEventType.verifica && e.date.year == parsedDate!.year && e.date.month == parsedDate.month && e.date.day == parsedDate.day);
-          if (!eventExists) {
-            _calendarEvents.add(CalendarEvent(
+        final eventExists = _calendarEvents.any(
+          (e) =>
+              e.type == CalendarEventType.verifica &&
+              e.date.year == parsedDate!.year &&
+              e.date.month == parsedDate.month &&
+              e.date.day == parsedDate.day,
+        );
+        if (!eventExists) {
+          _calendarEvents.add(
+            CalendarEvent(
               id: 'ce_ex_${parsedDate.millisecondsSinceEpoch}',
               title: title,
               subject: 'Verifica',
               date: parsedDate,
               type: CalendarEventType.verifica,
               details: 'Ore $orario',
-            ));
-          }
+            ),
+          );
         }
       }
+    }
 
+    if (!fromCache) {
       _isFirstNasSync = false;
+    }
 
-      // Aggiorna trascrizioni
-      _recordings.clear();
-      for (final tr in trascrizioniNas) {
-        DateTime? parsedDate;
-        try {
-          final parts = tr['data'].split('-');
-          parsedDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-        } catch (_) {
-          parsedDate = DateTime.now();
-        }
+    _recordings.clear();
+    for (final tr in trascrizioniNas) {
+      DateTime? parsedDate;
+      try {
+        final parts = tr['data'].split('-');
+        parsedDate = DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      } catch (_) {
+        parsedDate = DateTime.now();
+      }
 
-        _recordings.add(LessonRecording(
+      _recordings.add(
+        LessonRecording(
           id: tr['id'],
           title: tr['titolo'],
           subject: tr['materia'],
           date: parsedDate,
           duration: tr['durata'],
           status: 'Dal NAS',
-          transcriptSnippet: 'Trascrizione pronta sul NAS per la creazione di piani AI.',
-        ));
-      }
+          transcriptSnippet:
+              'Trascrizione pronta sul NAS per la creazione di piani AI.',
+        ),
+      );
+    }
+  }
+
+  Future<void> syncFromNas() async {
+    try {
+      final compitiNas = await NasService.getCompiti();
+      final verificheNas = await NasService.getVerifiche();
+      final trascrizioniNas = await NasService.getTrascrizioni();
+
+      await _saveCache(compitiNas, verificheNas, trascrizioniNas);
+      _processNasData(compitiNas, verificheNas, trascrizioniNas);
 
       notifyListeners();
     } catch (e) {
-      print('Errore sync dal NAS: $e');
+      debugPrint("Errore sync NAS: $e");
     }
   }
 
