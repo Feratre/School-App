@@ -17,8 +17,10 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RISULTATI_DIR = os.path.join(BASE_DIR, "risultati")
-UPLOAD_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../AI Agents/Transcription/audio_uploads"))
+UPLOAD_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../notebook_transcription/versione_nas/audio_uploads"))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+TRASCRIZIONI_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../notebook_transcription/versione_nas/trascrizioni"))
+os.makedirs(TRASCRIZIONI_DIR, exist_ok=True)
 
 @app.get("/api/compiti")
 def get_compiti():
@@ -57,11 +59,19 @@ def get_verifiche():
 
 @app.get("/api/trascrizioni")
 def get_trascrizioni():
-    # Mocking trascrizioni on the NAS for now
-    return [
-        {"id": "tr_1", "titolo": "Lezione Fisica - Elettrostatica", "data": "14-09-2026", "materia": "Fisica", "durata": "45 min"},
-        {"id": "tr_2", "titolo": "Lezione Matematica - Goniometria", "data": "15-09-2026", "materia": "Matematica", "durata": "50 min"}
-    ]
+    trascrizioni = []
+    # Trova tutti i file JSON delle trascrizioni
+    for file_path in glob.glob(os.path.join(TRASCRIZIONI_DIR, "*.json")):
+        with open(file_path, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+                if isinstance(data, list):
+                    trascrizioni.extend(data)
+                else:
+                    trascrizioni.append(data)
+            except:
+                pass
+    return trascrizioni
 
 
 @app.post("/api/upload-audio")
