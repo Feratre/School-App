@@ -294,7 +294,6 @@ class SchoolState extends ChangeNotifier {
   ];
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   final List<AppNotification> _notifications = [];
-  List<AppNotification> get notifications => List.unmodifiable(_notifications);
   List<HomeworkItem> get homework => List.unmodifiable(_homework);
 
   List<HomeworkItem> get tomorrowHomework {
@@ -375,6 +374,11 @@ class SchoolState extends ChangeNotifier {
   // Navigation handlers
   void goHome() {
     _route = 'home';
+    notifyListeners();
+  }
+
+  void clearNotifications() {
+    _notifications.clear();
     notifyListeners();
   }
 
