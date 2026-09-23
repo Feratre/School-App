@@ -293,6 +293,8 @@ class SchoolState extends ChangeNotifier {
     ),
   ];
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
+  final List<AppNotification> _notifications = [];
+  List<AppNotification> get notifications => List.unmodifiable(_notifications);
   List<HomeworkItem> get homework => List.unmodifiable(_homework);
 
   List<HomeworkItem> get tomorrowHomework {
@@ -964,8 +966,3 @@ class SchoolState extends ChangeNotifier {
   }
 }
 
-final List<AppNotification> _notifications = [];
-void clearNotifications() {
-  _notifications.clear();
-  notifyListeners();
-}
