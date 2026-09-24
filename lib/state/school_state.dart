@@ -964,7 +964,7 @@ class SchoolState extends ChangeNotifier {
 
   @override
   void dispose() {
-    _syncTimer?.cancel();
+    _stopSyncTimer();
     _authSub?.cancel();
     super.dispose();
   }

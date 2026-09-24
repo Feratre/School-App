@@ -5,7 +5,6 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/nas_service.dart';
 import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-import '../state/school_state.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'ui_kit.dart';
@@ -75,6 +74,9 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
     });
 
     final success = await NasService.uploadAudio(file);
+
+    // Svuota i file temporanei memorizzati nella cache da FilePicker
+    await FilePicker.clearTemporaryFiles();
 
     if (!mounted) return;
 

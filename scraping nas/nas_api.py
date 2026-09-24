@@ -1,4 +1,5 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Security
+from fastapi.security import APIKeyHeader
 import shutil
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -6,6 +7,16 @@ import os
 import glob
 
 app = FastAPI()
+
+API_KEY = os.environ.get("NAS_API_KEY", "school_app_key_9f8d7b3a2e1c4f5a6b7c8d9e")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def get_api_key(api_key: str = Security(api_key_header)):
+    if api_key == API_KEY:
+        return api_key
+    raise HTTPException(status_code=401, detail="Accesso Negato: API Key non valida o mancante")
+
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,13 +27,13 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-RISULTATI_DIR = os.path.join(BASE_DIR, "risultati")
+RISULTATI_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../scraping/risultati"))
 UPLOAD_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../notebook_transcription/versione_nas/audio_uploads"))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 TRASCRIZIONI_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../notebook_transcription/versione_nas/trascrizioni"))
 os.makedirs(TRASCRIZIONI_DIR, exist_ok=True)
 
-@app.get("/api/compiti")
+@app.get("/api/compiti", dependencies=[Depends(get_api_key)])
 def get_compiti():
     compiti = []
     # Trova tutti i file dei compiti
@@ -41,7 +52,7 @@ def get_compiti():
                 pass
     return compiti
 
-@app.get("/api/verifiche")
+@app.get("/api/verifiche", dependencies=[Depends(get_api_key)])
 def get_verifiche():
     verifiche = []
     # Trova tutti i file che iniziano con verifica_
@@ -57,7 +68,7 @@ def get_verifiche():
                 pass
     return verifiche
 
-@app.get("/api/trascrizioni")
+@app.get("/api/trascrizioni", dependencies=[Depends(get_api_key)])
 def get_trascrizioni():
     trascrizioni = []
     # Trova tutti i file JSON delle trascrizioni
@@ -74,7 +85,7 @@ def get_trascrizioni():
     return trascrizioni
 
 
-@app.post("/api/upload-audio")
+@app.post("/api/upload-audio", dependencies=[Depends(get_api_key)])
 async def upload_audio(file: UploadFile = File(...)):
     try:
         file_path = os.path.join(UPLOAD_DIR, file.filename)

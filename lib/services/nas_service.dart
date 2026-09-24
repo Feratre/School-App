@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../env/env.dart';
 
 class NasService {
   // Sostituire con l'IP locale del PC se testato su un dispositivo fisico.
@@ -9,8 +10,9 @@ class NasService {
   static const String _baseUrl =
       'https://noncorroborating-lawson-overdiverse.ngrok-free.dev/api';
 
-  static const Map<String, String> _headers = {
+  static final Map<String, String> _headers = {
     'ngrok-skip-browser-warning': 'true',
+    'X-API-Key': Env.nasApiKey,
   };
 
   static Future<List<dynamic>> getCompiti() async {
@@ -64,7 +66,7 @@ class NasService {
         'POST',
         Uri.parse('$_baseUrl/upload-audio'),
       );
-      request.headers.addAll({'ngrok-skip-browser-warning': 'true'});
+      request.headers.addAll({'ngrok-skip-browser-warning': 'true', 'X-API-Key': Env.nasApiKey});
       request.files.add(
         await http.MultipartFile.fromPath('file', audioFile.path),
       );
@@ -78,7 +80,7 @@ class NasService {
       }
       return false;
     } catch (e) {
-      debugPrint('Errore Upload Audio: $e');
+      print('Errore Upload Audio: $e');
       return false;
     }
   }
