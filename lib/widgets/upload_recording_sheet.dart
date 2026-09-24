@@ -40,6 +40,9 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
     'Fisica',
     'Storia',
     'Inglese',
+    'Storia dell\'Arte',
+    'Italiano',
+    'Scienze Naturali',
   ];
 
   @override
