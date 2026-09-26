@@ -34,15 +34,16 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
   String _uploadStatus = '';
 
   final _subjects = [
-    'Filosofia',
-    'Chimica',
-    'Matematica',
     'Fisica',
+    'Economia',
+    'Letteratura italiana',
+    'Letteratura inglese',
+    'Filosofia',
     'Storia',
-    'Inglese',
-    'Storia dell\'Arte',
-    'Italiano',
-    'Scienze Naturali',
+    'Storia dell\'arte',
+    'Matematica',
+    'Chimica',
+    'Letteratura latina',
   ];
 
   @override
