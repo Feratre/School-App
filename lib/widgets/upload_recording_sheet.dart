@@ -26,31 +26,8 @@ class UploadRecordingSheet extends StatefulWidget {
 }
 
 class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
-  final _titleCtrl = TextEditingController(
-    text: 'Lezione Filosofia: Kant e Critica Ragion Pura',
-  );
-  String _selectedSubject = 'Filosofia';
   bool _isUploading = false;
   String _uploadStatus = '';
-
-  final _subjects = [
-    'Fisica',
-    'Economia',
-    'Letteratura italiana',
-    'Letteratura inglese',
-    'Filosofia',
-    'Storia',
-    'Storia dell\'arte',
-    'Matematica',
-    'Chimica',
-    'Letteratura latina',
-  ];
-
-  @override
-  void dispose() {
-    _titleCtrl.dispose();
-    super.dispose();
-  }
 
   void _startUpload() async {
     if (Platform.isAndroid) {
@@ -89,7 +66,7 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Audio inviato correttamente al NAS per $_selectedSubject!',
+            'Audio inviato al NAS! Verrà trascritto e classificato automaticamente.',
           ),
           backgroundColor: const Color(0xFF2E7D32),
         ),
@@ -227,68 +204,14 @@ class _UploadRecordingSheetState extends State<UploadRecordingSheet> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
 
               Text(
-                'MATERIA DELLA LEZIONE',
-                style: AppTheme.d(
-                  12,
-                  weight: FontWeight.w600,
-                  color: sc.textSecondary,
-                  letterSpacing: 1.5,
-                ),
+                'L\'AI riconoscerà automaticamente materia e argomento.',
+                textAlign: TextAlign.center,
+                style: AppTheme.s(12, color: sc.textSecondary),
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _subjects.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    final sub = _subjects[i];
-                    final sel = sub == _selectedSubject;
-                    return Pill(
-                      label: sub,
-                      bg: sel ? sc.ember : sc.bgRaised2,
-                      fg: sel ? sc.onEmber : sc.textSecondary,
-                      onTap: () => setState(() => _selectedSubject = sub),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
 
-              Text(
-                'TITOLO / ARGOMENTO LEZIONE',
-                style: AppTheme.d(
-                  12,
-                  weight: FontWeight.w600,
-                  color: sc.textSecondary,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: sc.bg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: sc.border),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 4,
-                ),
-                child: TextField(
-                  controller: _titleCtrl,
-                  style: AppTheme.s(14, color: sc.text),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Es. Lezione Fisica 26 Ottobre',
-                    hintStyle: AppTheme.s(14, color: sc.textTertiary),
-                  ),
-                ),
-              ),
               const SizedBox(height: 22),
 
               PrimaryButton(

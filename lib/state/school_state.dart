@@ -22,6 +22,7 @@ class SchoolState extends ChangeNotifier {
   Future<void> _init() async {
     await NotificationService.instance.init();
     await _loadCache();
+    await _loadPlans();
   }
 
   bool _isFirstNasSync = true;
@@ -497,6 +498,7 @@ class SchoolState extends ChangeNotifier {
     _plans.sort((a, b) => a.examDate.compareTo(b.examDate));
     _selectedPlanId = newPlan.id;
     _route = 'ai-plans';
+    _savePlans();
     notifyListeners();
   }
 
@@ -743,6 +745,38 @@ class SchoolState extends ChangeNotifier {
     }
   }
 
+  Future<void> _savePlans() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final plansJson = _plans
+          .where((p) => !p.id.startsWith('plan-1')) // skip hardcoded demo plan
+          .map((p) => p.toJson())
+          .toList();
+      await prefs.setString('cache_plans', jsonEncode(plansJson));
+    } catch (e) {
+      debugPrint('Errore nel salvataggio dei piani: $e');
+    }
+  }
+
+  Future<void> _loadPlans() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final plansStr = prefs.getString('cache_plans');
+      if (plansStr != null) {
+        final plansList = jsonDecode(plansStr) as List<dynamic>;
+        for (final pJson in plansList) {
+          final plan = StudyPlan.fromJson(pJson);
+          if (!_plans.any((p) => p.id == plan.id)) {
+            _plans.add(plan);
+          }
+        }
+        _plans.sort((a, b) => a.examDate.compareTo(b.examDate));
+      }
+    } catch (e) {
+      debugPrint('Errore nel caricamento dei piani: $e');
+    }
+  }
+
   void _processNasData(
     List<dynamic> compitiNas,
     List<dynamic> verificheNas,
@@ -864,18 +898,18 @@ class SchoolState extends ChangeNotifier {
           );
         }
 
-        if (_nextExam == null &&
-            parsedDate.isAfter(
-              DateTime.now().subtract(const Duration(days: 1)),
-            )) {
-          _nextExam = ExamItem(
-            id: newExId,
-            title: title,
-            subject: 'Materia da definire',
-            date: parsedDate,
-            time: orario,
-            classroom: '',
-          );
+        final cutoff = DateTime.now().subtract(const Duration(days: 1));
+        if (parsedDate.isAfter(cutoff)) {
+          if (_nextExam == null || parsedDate.isBefore(_nextExam!.date)) {
+            _nextExam = ExamItem(
+              id: newExId,
+              title: title,
+              subject: v['materia'] ?? 'Materia da definire',
+              date: parsedDate,
+              time: orario,
+              classroom: '',
+            );
+          }
         }
 
         final eventExists = _calendarEvents.any(
@@ -969,4 +1003,3 @@ class SchoolState extends ChangeNotifier {
     super.dispose();
   }
 }
-
