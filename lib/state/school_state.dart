@@ -749,7 +749,7 @@ class SchoolState extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final plansJson = _plans
-          .where((p) => !p.id.startsWith('plan-1')) // skip hardcoded demo plan
+          .where((p) => p.id != 'plan-1') // skip hardcoded demo plan
           .map((p) => p.toJson())
           .toList();
       await prefs.setString('cache_plans', jsonEncode(plansJson));
